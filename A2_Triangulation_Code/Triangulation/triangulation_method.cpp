@@ -175,7 +175,12 @@ bool Triangulation::triangulation(
     // implementation starts ...
 
     // TODO: check if the input is valid (always good because you never known how others will call your function).
-
+    if (points_0.size()==points_1.size() && (points_0.size()>8) && (points_1.size()>8)){
+        return true;
+    }
+    else{
+        return false;
+    }
     // TODO: Estimate relative pose of two views. This can be subdivided into
     //      - estimate the fundamental matrix F;
     //      - compute the essential matrix E;
