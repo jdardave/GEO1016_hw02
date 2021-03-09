@@ -175,16 +175,33 @@ bool Triangulation::triangulation(
     // implementation starts ...
 
     // TODO: check if the input is valid (always good because you never known how others will call your function).
-    if (points_0.size()==points_1.size() && (points_0.size()>8) && (points_1.size()>8)){
-        return true;
-    }
-    else{
+    if (points_0.size()!=points_1.size() || (points_0.size()<8) || (points_1.size()<8)){
+        std::cout<< "Invalid Input!!"<<std::endl;
         return false;
     }
+
     // TODO: Estimate relative pose of two views. This can be subdivided into
     //      - estimate the fundamental matrix F;
     //      - compute the essential matrix E;
     //      - recover rotation R and t.
+    int n=points_0.size();
+    Matrix <double> Fund(n, 9, 0.0);
+    //Find the centroid
+    float x0,y0;
+    x0=0.0;
+    y0=0.0;
+    for (vec3 p0:points_0){
+        x0=x0+p0[0];
+        y0=y0+p0[1];
+    }
+    vec3 centroid={x0/points_0.size(),y0/points_0.size(),1};
+//    std::cout<<centroid<<std::endl;
+//    for (vec3 p0:points_0){
+//        p0[0]=p0[0]+centroid[0];
+//        p0[1]=p0[1]+centroid[1];
+//        centroid.distance2(p0);
+//    }
+    //Find the mean distance
 
     // TODO: Reconstruct 3D points. The main task is
     //      - triangulate a pair of image points (i.e., compute the 3D coordinates for each corresponding point pair)
