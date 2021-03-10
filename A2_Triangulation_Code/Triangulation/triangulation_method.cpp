@@ -208,14 +208,14 @@ bool Triangulation::triangulation(
     mat3 S1 = mat3 (s0, 0, 0, 0, s0, 0, 0, 0, 1);
     std::cout << "Scaling matrix for normalisation (image 1): " << S1 << std::endl;
     // Calculate Transformation Matrix
-    mat3 Transform1 = mat3 (S1*T1);
+    mat3 Transform1 = S1*T1;
 
     std::cout << "Transformation matrix for normalisation (image 1): " << Transform1 << std::endl;
     // New coordinates for normalisation of mean
 
     std::vector<vec3> norm_points_0;
     for (vec3 p:points_0){
-        mat3 new_coord = mat3(T1*p);
+        mat3 new_coord = mat3(Transform1*p);
         norm_points_0.emplace_back(new_coord[0],new_coord[1],new_coord[2]);
     }
     std::cout << "Normalized points (image 1): \n " << norm_points_0 << std::endl;
@@ -228,7 +228,7 @@ bool Triangulation::triangulation(
     }
     vec3 centroid1={x1/points_1.size(),y1/points_1.size(),1};
     mat3 T2 (1, 0, -centroid1[0], 0, 1, -centroid1[1], 0,0, 1);
-    std::cout << "Translation matrix for normalisation (image 1): " << T2 << std::endl;
+    std::cout << "Translation matrix for normalisation (image 2): " << T2 << std::endl;
 
     float dist1=0;
     float  x1_mean, y1_mean;
@@ -239,19 +239,19 @@ bool Triangulation::triangulation(
     }
     float s1 = (sqrt(2) / sqrt(dist1));
     mat3 S2 = mat3 (s1, 0, 0, 0, s1, 0, 0, 0, 1);
-    std::cout << "Scaling matrix for normalisation (image 1): " << S2 << std::endl;
+    std::cout << "Scaling matrix for normalisation (image 2): " << S2 << std::endl;
     // Calculate Transformation Matrix
     mat3 Transform2 = S2*T2;
 
-    std::cout << "Transformation matrix for normalisation (image 1): " << Transform2 << std::endl;
+    std::cout << "Transformation matrix for normalisation (image 2): " << Transform2 << std::endl;
     // New coordinates for normalisation of mean
 
     std::vector<vec3> norm_points_1;
     for (vec3 p1:points_1){
-        mat3 new_coord1 = mat3(T1*p1);
+        mat3 new_coord1 = mat3(Transform2*p1);
         norm_points_1.emplace_back(new_coord1[0],new_coord1[1],new_coord1[2]);
     }
-    std::cout << "Normalized points (image 1): \n " << norm_points_1 << std::endl;
+    std::cout << "Normalized points (image 2): \n " << norm_points_1 << std::endl;
 
 //    // let's check their mean distance to the "new" origin
 //    double im1 = 0, im2 = 0;
