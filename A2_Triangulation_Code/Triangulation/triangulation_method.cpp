@@ -185,7 +185,6 @@ bool Triangulation::triangulation(
     //      - estimate the fundamental matrix F;
     //      - compute the essential matrix E;
     //      - recover rotation R and t.
-    Matrix <double> Fund (points_0.size(), 9, 0.0);
 
     // IMAGE 1
     //Find the centroid
@@ -194,79 +193,86 @@ bool Triangulation::triangulation(
         x0 += p0[0];
         y0 += p0[1];
     }
-    Matrix <double> T1 (3, 1, 0.0);
-    T1.set_column ({x0 / points_0.size(),
-                        y0 / points_0.size(),
-                        1}, 0);
+    vec3 centroid={x0/points_0.size(),y0/points_0.size(),1};
+    mat3 T1 (1, 0, -centroid[0], 0, 1, -centroid[1], 0,0, 1);
     std::cout << "Translation matrix for normalisation (image 1): " << T1 << std::endl;
 
     //Find the mean distance before normalisation
     double dist_im1 = 0;
     for (vec3 p:points_0){
-        double dist = sqrt( pow(p[0]+ T1[0][0], 2)
-                            + pow(p[1]+ T1[0][1], 2));
+        double dist = sqrt( pow(p[0]+ T1[2], 2)
+                            + pow(p[1]+ T1[5], 2));
         dist_im1 += dist;
     }
     double mean_im1 = dist_im1 / points_0.size();
+    double factor_im1 = sqrt(2) / mean_im1;
+    mat3 S1 (factor_im1, 0, 0, 0, factor_im1, 0, 0,0, 1);
+    std::cout << "Scaling matrix for normalisation (image 1): " << S1 << std::endl;
+    // Calculate Transformation Matrix
+    mat3 Transform1;
+    Transform1 = S1*T1;
 
+    std::cout << "Transformation matrix for normalisation (image 1): " << Transform1 << std::endl;
     // New coordinates for normalisation of mean
-    float factor_im1 = sqrt(2) / mean_im1;
+
     std::vector<vec3> norm_points_0;
     for (vec3 p:points_0){
-        vec3 new_coord = { float(p[0] + T1[0][0]) * factor_im1,
-                           float(p[1] + T1[0][1]) * factor_im1,
-                           1 };
-        norm_points_0.emplace_back(new_coord);
+        mat3 new_coord = mat3(T1*p);
+        norm_points_0.emplace_back(new_coord[0],new_coord[1],new_coord[2]);
     }
-
+    std::cout << "Normalized points (image 1): " << norm_points_0 << std::endl;
     // IMAGE 2
     //Find the centroid
-    float x0_2 = 0.0 ,y0_2 = 0.0;
-    for (vec3 p0:points_1){
-        x0_2 += p0[0];
-        y0_2 += p0[1];
+    float x1 = 0.0 ,y1 = 0.0;
+    for (vec3 p1:points_1){
+        x1 += p1[0];
+        y1 += p1[1];
     }
-    Matrix <double> T2 (3, 1, 0.0);
-    T2.set_column ({x0_2 / points_1.size(),
-                        y0_2 / points_1.size(),
-                        1}, 0);
-    std::cout << "Translation matrix for normalisation (image 2): " << T2 << std::endl;
+    vec3 centroid1={x1/points_1.size(),y1/points_1.size(),1};
+    mat3 T2 (1, 0, -centroid1[0], 0, 1, -centroid1[1], 0,0, 1);
+    std::cout << "Translation matrix for normalisation (image 1): " << T2 << std::endl;
 
     //Find the mean distance before normalisation
     double dist_im2 = 0;
-    for (vec3 p:points_1){
-        double dist = sqrt( pow(p[0]+ T2[0][0], 2)
-                            + pow(p[1]+ T2[0][1], 2));
+    for (vec3 p1:points_1){
+        double dist = sqrt( pow(p1[0]+ T2[2], 2)
+                            + pow(p1[1]+ T2[5], 2));
         dist_im2 += dist;
     }
     double mean_im2 = dist_im2 / points_1.size();
+    double factor_im2 = sqrt(2) / mean_im2;
+    mat3 S2 (factor_im2, 0, 0, 0, factor_im2, 0, 0,0, 1);
+    std::cout << "Scaling matrix for normalisation (image 2): " << S2 << std::endl;
+    // Calculate Transformation Matrix
+    mat3 Transform2;
+    Transform2 = S2*T2;
 
+    std::cout << "Transformation matrix for normalisation (image 2): " << Transform2 << std::endl;
     // New coordinates for normalisation of mean
-    float factor_im2 = sqrt(2) / mean_im2;
-    std::vector<vec3> norm_points_1;
-    for (vec3 p:points_1){
-        vec3 new_coord = { float(p[0] + T2[0][0]) * factor_im2,
-                           float(p[1] + T2[0][1]) * factor_im2,
-                           1 };
-        norm_points_1.emplace_back(new_coord);
-    }
 
-    // let's check their mean distance to the "new" origin
-    double im1 = 0, im2 = 0;
-    for (vec3 p:norm_points_0){
-        double dist = sqrt( pow(p[0], 2)
-                    + pow(p[1], 2));
-        im1 += dist;
+    std::vector<vec3> norm_points_2;
+    for (vec3 p1:points_1){
+        mat3 new_coord1 = mat3(T2*p1);
+        norm_points_2.emplace_back(new_coord1[0],new_coord1[1],new_coord1[2]);
     }
-    for (vec3 p:norm_points_0){
-        double dist = sqrt( pow(p[0], 2)
-                            + pow(p[1], 2));
-        im2 += dist;
-    }
-    double finalMean_im1 = im1 / norm_points_0.size(),
-            finalMean_im2 = im2 / norm_points_1.size();
-    std::cout << "IMAGE 1: Mean before norm: " << mean_im1 << " and mean after norm: " << finalMean_im1 << std::endl;
-    std::cout << "IMAGE 2: Mean before norm: " << mean_im2 << " and mean after norm: " << finalMean_im2 << std::endl;
+    std::cout << "Normalized points (image 2): " << norm_points_2 << std::endl;
+
+//    // let's check their mean distance to the "new" origin
+//    double im1 = 0, im2 = 0;
+//    for (vec3 p:norm_points_0){
+//        double dist = sqrt( pow(p[0], 2)
+//                    + pow(p[1], 2));
+//        im1 += dist;
+//    }
+//    for (vec3 p:norm_points_0){
+//        double dist = sqrt( pow(p[0], 2)
+//                            + pow(p[1], 2));
+//        im2 += dist;
+//    }
+//    double finalMean_im1 = im1 / norm_points_0.size(),
+//            finalMean_im2 = im2 / norm_points_1.size();
+//    std::cout << "IMAGE 1: Mean before norm: " << mean_im1 << " and mean after norm: " << finalMean_im1 << std::endl;
+//    std::cout << "IMAGE 2: Mean before norm: " << mean_im2 << " and mean after norm: " << finalMean_im2 << std::endl;
 
 
     // TODO: Reconstruct 3D points. The main task is
