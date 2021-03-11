@@ -107,68 +107,68 @@ bool Triangulation::triangulation(
     /// ----------- fixed-size matrices
 
     /// define a 3 by 4 matrix M (you can also define 3 by 4 matrix similarly)
-    mat34 M(1.0f);  /// entries on the diagonal are initialized to be 1 and others to be 0.
-
-    /// set the first row of M
-    M.set_row(0, vec4(1,1,1,1));    /// vec4 is a 4D vector.
-
-    /// set the second column of M
-    M.set_col(1, vec4(2,2,2,2));
-
-    /// get the 3 rows of M
-    vec4 M1 = M.row(0);
-    vec4 M2 = M.row(1);
-    vec4 M3 = M.row(2);
-
-    /// ----------- fixed-size vectors
-
-    /// how to quickly initialize a std::vector
-    std::vector<double> rows = {0, 1, 2, 3,
-                                4, 5, 6, 7,
-                                8, 9, 10, 11};
-    /// get the '2'-th row of M
-    const vec4 b = M.row(2);    // it assigns the requested row to a new vector b
-
-    /// get the '1'-th column of M
-    const vec3 c = M.col(1);    // it assigns the requested column to a new vector c
-
-    /// modify the element value at row 2 and column 1 (Note the 0-based indices)
-    M(2, 1) = b.x;
-
-    /// apply transformation M on a 3D point p (p is a 3D vector)
-    vec3 p(222, 444, 333);
-    vec3 proj = M * vec4(p, 1.0f);  // use the homogenous coordinates. result is a 3D vector
-
-    /// the length of a vector
-    float len = p.length();
-    /// the squared length of a vector
-    float sqr_len = p.length2();
-
-    /// the dot product of two vectors
-    float dot_prod = dot(p, proj);
-
-    /// the cross product of two vectors
-    vec3 cross_prod = cross(p, proj);
-
-    /// normalize this vector
-    cross_prod.normalize();
-
-    /// a 3 by 3 matrix (all entries are intentionally NOT initialized for efficiency reasons)
-    mat3 F;
-    /// ... here you compute or initialize F.
-    /// compute the inverse of K
-    mat3 invF = inverse(F);
-
-    /// ----------- dynamic-size matrices
-
-    /// define a non-fixed size matrix
-    Matrix<double> W(2, 3, 0.0); // all entries initialized to 0.0.
-
-    /// set its first row by a 3D vector (1.1, 2.2, 3.3)
-    W.set_row({ 1.1, 2.2, 3.3 }, 0);   // here "{ 1.1, 2.2, 3.3 }" is of type 'std::vector<double>'
-
-    /// get the last column of a matrix
-    std::vector<double> last_column = W.get_column(W.cols() - 1);
+//    mat34 M(1.0f);  /// entries on the diagonal are initialized to be 1 and others to be 0.
+//
+//    /// set the first row of M
+//    M.set_row(0, vec4(1,1,1,1));    /// vec4 is a 4D vector.
+//
+//    /// set the second column of M
+//    M.set_col(1, vec4(2,2,2,2));
+//
+//    /// get the 3 rows of M
+//    vec4 M1 = M.row(0);
+//    vec4 M2 = M.row(1);
+//    vec4 M3 = M.row(2);
+//
+//    /// ----------- fixed-size vectors
+//
+//    /// how to quickly initialize a std::vector
+//    std::vector<double> rows = {0, 1, 2, 3,
+//                                4, 5, 6, 7,
+//                                8, 9, 10, 11};
+//    /// get the '2'-th row of M
+//    const vec4 b = M.row(2);    // it assigns the requested row to a new vector b
+//
+//    /// get the '1'-th column of M
+//    const vec3 c = M.col(1);    // it assigns the requested column to a new vector c
+//
+//    /// modify the element value at row 2 and column 1 (Note the 0-based indices)
+//    M(2, 1) = b.x;
+//
+//    /// apply transformation M on a 3D point p (p is a 3D vector)
+//    vec3 p(222, 444, 333);
+//    vec3 proj = M * vec4(p, 1.0f);  // use the homogenous coordinates. result is a 3D vector
+//
+//    /// the length of a vector
+//    float len = p.length();
+//    /// the squared length of a vector
+//    float sqr_len = p.length2();
+//
+//    /// the dot product of two vectors
+//    float dot_prod = dot(p, proj);
+//
+//    /// the cross product of two vectors
+//    vec3 cross_prod = cross(p, proj);
+//
+//    /// normalize this vector
+//    cross_prod.normalize();
+//
+//    /// a 3 by 3 matrix (all entries are intentionally NOT initialized for efficiency reasons)
+//    mat3 F;
+//    /// ... here you compute or initialize F.
+//    /// compute the inverse of K
+//    mat3 invF = inverse(F);
+//
+//    /// ----------- dynamic-size matrices
+//
+//    /// define a non-fixed size matrix
+//    Matrix<double> W(2, 3, 0.0); // all entries initialized to 0.0.
+//
+//    /// set its first row by a 3D vector (1.1, 2.2, 3.3)
+//    W.set_row({ 1.1, 2.2, 3.3 }, 0);   // here "{ 1.1, 2.2, 3.3 }" is of type 'std::vector<double>'
+//
+//    /// get the last column of a matrix
+//    std::vector<double> last_column = W.get_column(W.cols() - 1);
 
     // TODO: delete all above demo code in the final submission
 
@@ -219,6 +219,8 @@ bool Triangulation::triangulation(
         norm_points_0.emplace_back(new_coord[0],new_coord[1],new_coord[2]);
     }
     std::cout << "Normalized points (image 1): \n " << norm_points_0 << std::endl;
+
+
 //    // IMAGE 2
     //Find the centroid
     float x1 = 0.0 ,y1 = 0.0;
@@ -253,6 +255,38 @@ bool Triangulation::triangulation(
     }
     std::cout << "Normalized points (image 2): \n " << norm_points_1 << std::endl;
 
+    // Construct W matrix
+    Matrix <double> W(points_0.size(),9,1.0);
+
+    for (int i=0;i<norm_points_0.size();i++){
+        double u1 = norm_points_0[i][0];
+        double v1 = norm_points_0[i][1];
+        double u2 = norm_points_1[i][0];
+        double v2 = norm_points_1[i][1];
+        W.set_row({u1*u2,v1*u2,u2,u1*v2,v1*v2,v2,u1,v1,1},i);
+
+    }
+    // SVD OF W;
+    Matrix<double> U(W.rows(), W.rows(), 0.0), S(W.rows(), W.cols(), 0.0), V(W.cols(), W.cols(), 0.0);
+    svd_decompose(W,U,S,V);
+    std::cout<<" Matrix W" << W <<std::endl;
+
+    std::vector<double> f_data =V.get_column(V.cols()-1);
+    Matrix<double> f(3,3,f_data);
+    mat3 fmat3 = to_mat3(f);
+
+    std::cout<<fmat3<<std::endl;
+    //SVD OF f
+    Matrix<double> Uf(f.rows(), f.rows(), 0.0), Sf(f.rows(), f.cols(), 0.0), Vf(f.cols(), f.cols(), 0.0);
+    svd_decompose(f,Uf,Sf,Vf);
+
+    // Set last value of s to 0
+    Sf.set(Sf.rows()-1,Sf.rows()-1,0);
+    std::cout<<Sf<<std::endl;
+
+    // Final Fundamental Matrix
+    mat3 F=transpose(Transform1)*fmat3*Transform2;
+    std::cout<<F<<std::endl;
 //    // let's check their mean distance to the "new" origin
 //    double im1 = 0, im2 = 0;
 //    for (vec3 p:norm_points_0){
