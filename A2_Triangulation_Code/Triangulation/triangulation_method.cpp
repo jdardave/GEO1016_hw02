@@ -222,7 +222,7 @@ bool Triangulation::triangulation(
     std::cout << "Normalized points (image 1): \n " << norm_points_0 << std::endl;
 
 
-//    // IMAGE 2
+    // IMAGE 2
     //Find the centroid
     float x1 = 0.0 ,y1 = 0.0;
     for (vec3 p1:points_1){
@@ -260,55 +260,44 @@ bool Triangulation::triangulation(
     // Construct W matrix
     Matrix <double> W(points_0.size(),9,1.0);
 
-    for (int i=0;i<norm_points_0.size();i++){
-        double u1 = norm_points_0[i][0];
-        double v1 = norm_points_0[i][1];
-        double u2 = norm_points_1[i][0];
-        double v2 = norm_points_1[i][1];
-        W.set_row({u1*u2,v1*u2,u2,u1*v2,v1*v2,v2,u1,v1,1},i);
-
+    for (int i=0; i < norm_points_0.size(); i++){
+        double u1 = norm_points_0[i][0],
+                v1 = norm_points_0[i][1],
+                u2 = norm_points_1[i][0],
+                v2 = norm_points_1[i][1];
+        W.set_row({u1 * u2, v1 * u2, u2, u1 * v2, v1 * v2, v2, u1, v1, 1},
+                    i);
     }
     // SVD OF W;
-    Matrix<double> U(W.rows(), W.rows(), 0.0), S(W.rows(), W.cols(), 0.0), V(W.cols(), W.cols(), 0.0);
+    Matrix<double> U(W.rows(), W.rows(), 0.0),
+                    S(W.rows(), W.cols(), 0.0),
+                    V(W.cols(), W.cols(), 0.0);
     svd_decompose(W,U,S,V);
-    std::cout<<" Matrix W" << W <<std::endl;
+    //std::cout << "Matrix W " << W << std::endl;
 
-    std::vector<double> f_data =V.get_column(V.cols()-1);
+    std::vector<double> f_data = V.get_column(V.cols()-1);
     Matrix<double> f(3,3,f_data);
-    mat3 fmat3 = to_mat3(f);
 
-    std::cout<<fmat3<<std::endl;
     //SVD OF f
-    Matrix<double> Uf(f.rows(), f.rows(), 0.0), Sf(f.rows(), f.cols(), 0.0), Vf(f.cols(), f.cols(), 0.0);
+    Matrix<double> Uf(f.rows(), f.rows(), 0.0),
+                    Sf(f.rows(), f.cols(), 0.0),
+                    Vf(f.cols(), f.cols(), 0.0);
     svd_decompose(f,Uf,Sf,Vf);
 
     // Set last value of s to 0
     Sf.set(Sf.rows()-1,Sf.rows()-1,0);
-    std::cout<<Sf<<std::endl;
 
-    // Final Fundamental Matrix
-    mat3 F=transpose(Transform1)*fmat3*Transform2;
-    std::cout<<F<<std::endl;
-//    // let's check their mean distance to the "new" origin
-//    double im1 = 0, im2 = 0;
-//    for (vec3 p:norm_points_0){
-//        double dist = sqrt( pow(p[0], 2)
-//                    + pow(p[1], 2));
-//        im1 += dist;
-//    }
-//    for (vec3 p:norm_points_0){
-//        double dist = sqrt( pow(p[0], 2)
-//                            + pow(p[1], 2));
-//        im2 += dist;
-//    }
-//    double finalMean_im1 = im1 / norm_points_0.size(),
-//            finalMean_im2 = im2 / norm_points_1.size();
-//    std::cout << "IMAGE 1: Mean before norm: " << mean_im1 << " and mean after norm: " << finalMean_im1 << std::endl;
-//    std::cout << "IMAGE 2: Mean before norm: " << mean_im2 << " and mean after norm: " << finalMean_im2 << std::endl;
+    // New F matrix
+    Matrix<double> f_constraint(3, 3, Uf * Sf * Vf);
+    mat3 fmat3 = to_mat3(f_constraint);
 
+    // Denormalisation
+    mat3 F = transpose(Transform1) * fmat3 * Transform2;
+    std::cout << "Final F " << F << std::endl;
 
     // TODO: Reconstruct 3D points. The main task is
     //      - triangulate a pair of image points (i.e., compute the 3D coordinates for each corresponding point pair)
+
 
     // TODO: Don't forget to
     //          - write your recovered 3D points into 'points_3d' (the viewer can visualize the 3D points for you);
