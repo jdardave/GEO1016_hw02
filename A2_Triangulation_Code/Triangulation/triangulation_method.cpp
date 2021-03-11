@@ -238,7 +238,7 @@ bool Triangulation::triangulation(
     for (vec3 p1:points_1){
         x1_mean = p1[0] - centroid[0];
         y1_mean = p1[1] - centroid[1];
-        dist1 = dist1 + sqrt((x0_mean*x0_mean) + (y0_mean*y0_mean));
+        dist1 = dist1 + sqrt((x1_mean*x1_mean) + (y1_mean*y1_mean));
     }
     float mean_dist2=dist1/points_1.size();
     float s1 = sqrt(2) / mean_dist2;
