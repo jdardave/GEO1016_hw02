@@ -292,8 +292,30 @@ bool Triangulation::triangulation(
     mat3 fmat3 = to_mat3(f_constraint);
 
     // Denormalisation
-    mat3 F = transpose(Transform1) * fmat3 * Transform2;
+    mat3 F = transpose(Transform2) * fmat3 * Transform1;
     std::cout << "Final F " << F << std::endl;
+
+    //Compute K matrix (skewness is 0)
+    Matrix <double> k_matrix(3,3,0.0);
+    k_matrix.set_row({fx, 0.0, cx},0);
+    k_matrix.set_row({0.0, fy, cy},1);
+    k_matrix.set_row({0.0, 0.0, 1},2);
+    mat3 kmat3 = to_mat3(k_matrix);
+    std::cout << "K matrix \n" << kmat3 << std::endl;
+
+    //Compute essential matrix E (using K matrix)
+    mat3 essential = transpose(kmat3) * F * kmat3; //Is this the correct F to use?
+    Matrix <double> essential_mat = to_Matrix(essential);
+
+    // SVD of E
+    Matrix<double> Ue(essential_mat.rows(), essential_mat.rows(), 0.0),
+            Se(essential_mat.rows(), essential_mat.cols(), 0.0),
+            Ve(essential_mat.cols(), essential_mat.cols(), 0.0);
+    svd_decompose(essential_mat,Uf,Sf,Vf);
+
+    // Use helper W and Z matrices to find two values of R
+
+    // Find two potential T values (last column of V?)
 
     // TODO: Reconstruct 3D points. The main task is
     //      - triangulate a pair of image points (i.e., compute the 3D coordinates for each corresponding point pair)
