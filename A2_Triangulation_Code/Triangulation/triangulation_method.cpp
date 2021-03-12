@@ -311,11 +311,38 @@ bool Triangulation::triangulation(
     Matrix<double> Ue(essential_mat.rows(), essential_mat.rows(), 0.0),
             Se(essential_mat.rows(), essential_mat.cols(), 0.0),
             Ve(essential_mat.cols(), essential_mat.cols(), 0.0);
-    svd_decompose(essential_mat,Uf,Sf,Vf);
+    svd_decompose(essential_mat,Ue,Se,Ve);
 
     // Use helper W and Z matrices to find two values of R
+    std::vector<double> W_values = {0, -1, 0, 1, 0, 0, 0, 0, 1};
+    const int m = 3, n = 3;
+    Matrix<double> W_matrix(m, n, W_values.data());
 
-    // Find two potential T values (last column of V?)
+    std::vector<double> Z_values = {0, 1, 0, -1, 0, 0, 0, 0, 0};
+    Matrix<double> Z_matrix(m, n, Z_values.data());
+
+    // R values
+    Matrix<double> R1 = (determinant(Ue * W_matrix * Ve)) * (Ue * W_matrix * Ve);
+    Matrix<double> R2 = determinant(Ue * transpose(W_matrix) * Ve) * (Ue * transpose(W_matrix) * Ve);
+    std::cout << "R1: \n" << R1 << std::endl;
+    std::cout << "R2: \n" << R2 << std::endl;
+
+//    std::cout << "R1 det: \n" << determinant(R1) << std::endl;     // determinant(R1) > 0
+//    std::cout << "R2 det: \n" << determinant(R2) << std::endl;     // determinant(R2) > 0
+
+    // Find two potential T values
+    std::vector<double> t_helper_values = {0, 0, 1};
+    const int k = 3, l = 1;
+    Matrix<double> t_helper(k, l, t_helper_values.data());
+
+    Matrix <double> t1 = Ue * t_helper;
+    Matrix <double> t2 = -(Ue * t_helper);
+    std::cout << "t1: \n" << t1 << std::endl;
+    std::cout << "t2: \n" << t2 << std::endl;
+    //t equals to the last column of Ue
+    std::cout << "Ue: \n" << Ue << std::endl;
+
+
 
     // TODO: Reconstruct 3D points. The main task is
     //      - triangulate a pair of image points (i.e., compute the 3D coordinates for each corresponding point pair)
