@@ -216,29 +216,31 @@ bool Triangulation::triangulation(
         y0 += p0[1];
     }
     vec3 centroid = {x0 / points_0.size(), y0 / points_0.size(), 1};
-    mat3 T1 = mat3(1, 0, -centroid[0], 0, 1, -centroid[1], 0, 0, 1);
-    std::cout << "Translation matrix for normalisation (image 1): " << T1 << std::endl;
+    mat3 T0 = mat3(1, 0, -centroid[0],
+                   0, 1, -centroid[1],
+                   0, 0, 1);
+    std::cout << "Translation matrix for normalisation (image 1): " << T0 << std::endl;
 
     float dist = 0;
-    float x0_mean, y0_mean;
     for (vec3 i:points_0) {
-        x0_mean = i[0] - centroid[0];
-        y0_mean = i[1] - centroid[1];
-        dist = dist + sqrt((x0_mean * x0_mean) + (y0_mean * y0_mean));
+        dist += sqrt(pow((centroid[0]-i[0]), 2)
+                + pow((centroid[1]-i[1]), 2));
     }
-    float mean_dist1 = dist / points_0.size();
-    float s0 = sqrt(2) / mean_dist1;
-    mat3 S1 = mat3(s0, 0, 0, 0, s0, 0, 0, 0, 1);
-    std::cout << "Scaling matrix for normalisation (image 1): " << S1 << std::endl;
+    float mean_dist0 = dist / points_0.size();
+    float s0 = sqrt(2) / mean_dist0;
+    mat3 S0 = mat3(s0, 0, 0,
+                   0, s0, 0,
+                   0, 0, 1);
+    std::cout << "Scaling matrix for normalisation (image 1): " << S0 << std::endl;
 
     // Calculate Transformation Matrix
-    mat3 Transform1 = S1 * T1;
-    std::cout << "Transformation matrix for normalisation (image 1): " << Transform1 << std::endl;
+    mat3 Transform0 = S0 * T0;
+    std::cout << "Transformation matrix for normalisation (image 1): " << Transform0 << std::endl;
 
     // Normalisation
     std::vector<vec3> norm_points_0;
     for (vec3 p:points_0) {
-        mat3 new_coord = mat3(Transform1 * p);
+        mat3 new_coord = mat3(Transform0 * p);
         norm_points_0.emplace_back(new_coord[0], new_coord[1], new_coord[2]);
     }
     std::cout << "Normalized points (image 1): \n " << norm_points_0 << std::endl;
@@ -251,33 +253,32 @@ bool Triangulation::triangulation(
         y1 += p1[1];
     }
     vec3 centroid1 = {x1 / points_1.size(), y1 / points_1.size(), 1};
-    mat3 T2(1, 0, -centroid1[0],
+    mat3 T1(1, 0, -centroid1[0],
             0, 1, -centroid1[1],
             0, 0, 1);
-    std::cout << "Translation matrix for normalisation (image 2): " << T2 << std::endl;
+    std::cout << "Translation matrix for normalisation (image 2): " << T1 << std::endl;
 
     float dist1 = 0;
-    float x1_mean, y1_mean;
     for (vec3 p1:points_1) {
-        x1_mean = p1[0] - centroid[0];
-        y1_mean = p1[1] - centroid[1];
-        dist1 = dist1 + sqrt((x1_mean * x1_mean) + (y1_mean * y1_mean));
+        //I think this should be centroid1 ?? but it gives worst results :(
+        dist1 += sqrt(pow((centroid[0]-p1[0]), 2)
+                     + pow((centroid[1]-p1[1]), 2));
     }
-    float mean_dist2 = dist1 / points_1.size();
-    float s1 = sqrt(2) / mean_dist2;
-    mat3 S2 = mat3(s1, 0, 0,
+    float mean_dist1 = dist1 / points_1.size();
+    float s1 = sqrt(2) / mean_dist1;
+    mat3 S1 = mat3(s1, 0, 0,
                    0, s1, 0,
                    0, 0, 1);
-    std::cout << "Scaling matrix for normalisation (image 2): " << S2 << std::endl;
+    std::cout << "Scaling matrix for normalisation (image 2): " << S1 << std::endl;
 
     // Calculate Transformation Matrix
-    mat3 Transform2 = S2 * T2;
-    std::cout << "Transformation matrix for normalisation (image 2): " << Transform2 << std::endl;
+    mat3 Transform1 = S1 * T1;
+    std::cout << "Transformation matrix for normalisation (image 2): " << Transform1 << std::endl;
 
     // Normalisation
     std::vector<vec3> norm_points_1;
     for (vec3 p1:points_1) {
-        mat3 new_coord1 = mat3(Transform2 * p1);
+        mat3 new_coord1 = mat3(Transform1 * p1);
         norm_points_1.emplace_back(new_coord1[0], new_coord1[1], new_coord1[2]);
     }
     std::cout << "Normalized points (image 2): \n " << norm_points_1 << std::endl;
@@ -315,7 +316,7 @@ bool Triangulation::triangulation(
     mat3 fmat3 = to_mat3(f_constraint);
 
     // Denormalisation
-    mat3 F = transpose(Transform2) * fmat3 * Transform1;
+    mat3 F = transpose(Transform1) * fmat3 * Transform0;
     Matrix<double> F_matrix = to_Matrix(F);
 
     // Scale so that last value of F is 1
@@ -388,7 +389,7 @@ bool Triangulation::triangulation(
                                      R2[1][0], R2[1][1], R2[1][2], t1[1][0],
                                      R2[2][0], R2[2][1], R2[2][2], t1[2][0]}),
 
-            R2_t2(3, 4, {R2[0][0], R2[0][1], R2[0][2], t1[0][0],
+            R2_t2(3, 4, {R2[0][0], R2[0][1], R2[0][2], t2[0][0],
                                      R2[1][0], R2[1][1], R2[1][2], t2[1][0],
                                      R2[2][0], R2[2][1], R2[2][2], t2[2][0]});
     Matrix<double> M1_1 = k_matrix * R1_t1,
@@ -445,9 +446,7 @@ bool Triangulation::triangulation(
 
     // Final R and t matrices
     R = to_mat3(R2);
-    t[0] = *t1[0];
-    t[1] = *t1[1];
-    t[2] = *t1[2];
+    t = {float(*t1[0]), float(*t1[1]), float(*t1[2])};
 
     // TODO: Don't forget to
     //          - write your recovered 3D points into 'points_3d' (the viewer can visualize the 3D points for you);
