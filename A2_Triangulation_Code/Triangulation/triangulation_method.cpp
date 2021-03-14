@@ -41,7 +41,6 @@ mat3 to_mat3(Matrix<double> &M) {
     return result;
 }
 
-
 /// convert M of type 'matN' (N can be any positive integer) to type 'Matrix<double>'
 template<typename mat>
 Matrix<double> to_Matrix(const mat &M) {
@@ -67,9 +66,7 @@ Matrix<double> get_A (Matrix<double> M_camera1, Matrix<double> M_camera2, vec3 p
     return A;
 }
 
-
-
-bool z_is_positive (Matrix<double> A) {
+std::vector<double> hom_coordinates (Matrix<double> A) {
     // SVD decomposition
     Matrix<double> Ua(A.rows(), A.rows(), 0.0),
             Sa(A.rows(), A.cols(), 0.0),
@@ -78,12 +75,8 @@ bool z_is_positive (Matrix<double> A) {
     // 3D homogeneous coordinates
     double last_value = Va.get_column(Va.cols() - 1)[3];
     std::vector<double> hom_coord = Va.get_column(Va.cols() - 1) / last_value;
-    //std::cout << "Homogeneous coordinates " << hom_coord << std::endl;
-    if (hom_coord[2] >= 0) {
-        return true;
-    } else return false;
+    return hom_coord;
 };
-
 
 /**
  * TODO: Finish this function for reconstructing 3D geometry from corresponding image points.
@@ -374,7 +367,7 @@ bool Triangulation::triangulation(
     //      - triangulate a pair of image points (i.e., compute the 3D coordinates for each corresponding point pair)
 
     // CAMERA 1
-    // Compute projection matrix from K, R and t
+    // Projection matrix from K, R and t
     Matrix<double> Rt(3, 4, {1, 0, 0, 0,
                              0, 1, 0, 0,
                              0, 0, 1, 0});
@@ -406,39 +399,55 @@ bool Triangulation::triangulation(
     // 3D COMPUTATION - LINEAR METHOD
     int count1_1 = 0, count1_2 = 0, count2_1 = 0, count2_2 = 0;
     for (int id = 0; id < points_0.size(); id++) {
-        // TODO - z coordinate camera 1
-        Matrix<double> A = get_A(M, Rt, points_0[id], points_1[id]);
-        // A matrices for R1, R2, t1, t2 (camera 2)
-        Matrix<double> A1_1 = get_A(M, M1_1, points_0[id], points_1[id]);
-        Matrix<double> A1_2 = get_A(M, M1_2, points_0[id], points_1[id]);
-        Matrix<double> A2_1 = get_A(M, M2_1, points_0[id], points_1[id]);
-        Matrix<double> A2_2 = get_A(M, M2_2, points_0[id], points_1[id]);
+        // A matrices for R1, R2, t1, t2 (camera 1)
+        Matrix<double> A1_1 = get_A(M, M1_1, points_0[id], points_1[id]),
+                        A1_2 = get_A(M, M1_2, points_0[id], points_1[id]),
+                        A2_1 = get_A(M, M2_1, points_0[id], points_1[id]),
+                        A2_2 = get_A(M, M2_2, points_0[id], points_1[id]);
+        // Coordinates camera 2: apply Rt
+        Matrix<double> coordRt1_1(1,3, hom_coordinates(A1_1));
+        coordRt1_1 *= * R1_t1;
+        Matrix<double> coordRt1_2(1,3, hom_coordinates(A1_2));
+        coordRt1_2 *= * R1_t2;
+        Matrix<double> coordRt2_1(1,3, hom_coordinates(A2_1));
+        coordRt2_1 *= * R2_t1;
+        Matrix<double> coordRt2_2(1,3, hom_coordinates(A2_2));
+        coordRt2_2 *= * R2_t2;
 
         // Counters
-        //&& z_is_positive(A)
-        if (z_is_positive(A1_1) && z_is_positive(A)) {
+        if (hom_coordinates(A1_1)[2] > 0 && coordRt1_1[0][2] > 0) {
             count1_1++;
         }
-        if (z_is_positive(A1_2) && z_is_positive(A)) {
+        if (hom_coordinates(A1_2)[2] > 0 && coordRt1_2[0][2] > 0) {
             count1_2++;
         }
-        if (z_is_positive(A2_1) && z_is_positive(A)) {
+        if (hom_coordinates(A2_1)[2] > 0 && coordRt2_1[0][2] > 0) {
             count2_1++;
         }
-        if (z_is_positive(A2_2) && z_is_positive(A)) {
+        if (hom_coordinates(A2_2)[2] > 0 && coordRt2_2[0][2] > 0) {
             count2_2++;
         }
-
     }
     std::cout << "Count R1, t1 " << count1_1 << std::endl;
     std::cout << "Count R1, t2 " << count1_2 << std::endl;
     std::cout << "Count R2, t1 " << count2_1 << std::endl;
     std::cout << "Count R2, t2 " << count2_2 << std::endl;
 
+    // Add final 3D points to points_3D, using R2 and t1, that is M2_1
+    for (int id = 0; id < points_0.size(); id++) {
+        Matrix<double> A_final = get_A(M, M2_1, points_0[id], points_1[id]);
+        vec3 coord_3d = {float(hom_coordinates(A_final)[0]),
+                         float(hom_coordinates(A_final)[1]),
+                         float(hom_coordinates(A_final)[2])};
+        points_3d.emplace_back(coord_3d);
+    }
+    assert(points_3d.size() == points_0.size() && points_3d.size() == points_1.size());
 
-    // Add final 3D points to points_3D
-
-
+    // Final R and t matrices
+    R = to_mat3(R2);
+    t[0] = *t1[0];
+    t[1] = *t1[1];
+    t[2] = *t1[2];
 
     // TODO: Don't forget to
     //          - write your recovered 3D points into 'points_3d' (the viewer can visualize the 3D points for you);
