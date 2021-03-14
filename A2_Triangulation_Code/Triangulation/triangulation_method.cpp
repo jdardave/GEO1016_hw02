@@ -55,6 +55,35 @@ Matrix<double> to_Matrix(const mat &M) {
     return result;
 }
 
+Matrix<double> get_A (Matrix<double> M_camera1, Matrix<double> M_camera2, vec3 p0, vec3 p1) {
+    std::vector<double> A_row1 = (p0[0] * M_camera1.get_row(2)) - M_camera1.get_row(0),
+                        A_row2 = (p0[1] * M_camera1.get_row(2)) - M_camera1.get_row(1),
+                        A_row3 = (p1[0] * M_camera2.get_row(2)) - M_camera2.get_row(0),
+                        A_row4 = (p1[1] * M_camera2.get_row(2)) - M_camera2.get_row(1);
+    Matrix<double> A(4, 4, A_row1.data());
+    A.set_row(A_row2, 1);
+    A.set_row(A_row3, 2);
+    A.set_row(A_row4, 3);
+    return A;
+}
+
+
+
+bool z_is_positive (Matrix<double> A) {
+    // SVD decomposition
+    Matrix<double> Ua(A.rows(), A.rows(), 0.0),
+            Sa(A.rows(), A.cols(), 0.0),
+            Va(A.cols(), A.cols(), 0.0);
+    svd_decompose(A, Ua, Sa, Va);
+    // 3D homogeneous coordinates
+    double last_value = Va.get_column(Va.cols() - 1)[3];
+    std::vector<double> hom_coord = Va.get_column(Va.cols() - 1) / last_value;
+    //std::cout << "Homogeneous coordinates " << hom_coord << std::endl;
+    if (hom_coord[2] >= 0) {
+        return true;
+    } else return false;
+};
+
 
 /**
  * TODO: Finish this function for reconstructing 3D geometry from corresponding image points.
@@ -68,8 +97,7 @@ bool Triangulation::triangulation(
         std::vector<vec3> &points_3d,         /// output: reconstructed 3D points
         mat3 &R,   /// output: recovered rotation of 2nd camera (used for updating the viewer and visual inspection)
         vec3 &t    /// output: recovered translation of 2nd camera (used for updating the viewer and visual inspection)
-) const
-{
+) const {
     /// NOTE: there might be multiple workflows for reconstructing 3D geometry from corresponding image points.
     ///       This assignment uses the commonly used one explained in our lecture.
     ///       It is advised to define a function for each sub-task. This way you have a clean and well-structured
@@ -95,7 +123,8 @@ bool Triangulation::triangulation(
                  "\t    - delete ALL unrelated test or debug code and avoid unnecessary output.\n"
                  "\t    - include all the source code (original code framework + your implementation).\n"
                  "\t    - do NOT include the 'build' directory (which contains the intermediate files in a build step).\n"
-                 "\t    - make sure your code compiles and can reproduce your results without any modification.\n\n" << std::flush;
+                 "\t    - make sure your code compiles and can reproduce your results without any modification.\n\n"
+              << std::flush;
 
     /// Easy3D provides fixed-size matrix types, e.g., mat2 (2x2), mat3 (3x3), mat4 (4x4), mat34 (3x4).
     /// To use these matrices, their sizes should be known to you at the compile-time (i.e., when compiling your code).
@@ -176,8 +205,8 @@ bool Triangulation::triangulation(
     // implementation starts ...
 
     // TODO: check if the input is valid (always good because you never known how others will call your function).
-    if (points_0.size()!=points_1.size() || (points_0.size()<8) || (points_1.size()<8)){
-        std::cout<< "Invalid Input!!"<<std::endl;
+    if (points_0.size() != points_1.size() || (points_0.size() < 8) || (points_1.size() < 8)) {
+        std::cout << "Invalid Input!!" << std::endl;
         return false;
     }
 
@@ -188,34 +217,34 @@ bool Triangulation::triangulation(
 
     // IMAGE 1
     //Find the centroid
-    float x0 = 0.0 ,y0 = 0.0;
-    for (vec3 p0:points_0){
+    float x0 = 0.0, y0 = 0.0;
+    for (vec3 p0:points_0) {
         x0 += p0[0];
         y0 += p0[1];
     }
-    vec3 centroid={x0/points_0.size(),y0/points_0.size(),1};
-    mat3 T1= mat3 (1, 0, -centroid[0], 0, 1, -centroid[1], 0,0, 1);
+    vec3 centroid = {x0 / points_0.size(), y0 / points_0.size(), 1};
+    mat3 T1 = mat3(1, 0, -centroid[0], 0, 1, -centroid[1], 0, 0, 1);
     std::cout << "Translation matrix for normalisation (image 1): " << T1 << std::endl;
 
     float dist = 0;
-    float  x0_mean, y0_mean;
-    for (vec3 i:points_0){
+    float x0_mean, y0_mean;
+    for (vec3 i:points_0) {
         x0_mean = i[0] - centroid[0];
         y0_mean = i[1] - centroid[1];
         dist = dist + sqrt((x0_mean * x0_mean) + (y0_mean * y0_mean));
     }
-    float mean_dist1=dist/points_0.size();
+    float mean_dist1 = dist / points_0.size();
     float s0 = sqrt(2) / mean_dist1;
-    mat3 S1 = mat3 (s0, 0, 0, 0, s0, 0, 0, 0, 1);
+    mat3 S1 = mat3(s0, 0, 0, 0, s0, 0, 0, 0, 1);
     std::cout << "Scaling matrix for normalisation (image 1): " << S1 << std::endl;
 
     // Calculate Transformation Matrix
-    mat3 Transform1 = S1*T1;
+    mat3 Transform1 = S1 * T1;
     std::cout << "Transformation matrix for normalisation (image 1): " << Transform1 << std::endl;
 
     // Normalisation
     std::vector<vec3> norm_points_0;
-    for (vec3 p:points_0){
+    for (vec3 p:points_0) {
         mat3 new_coord = mat3(Transform1 * p);
         norm_points_0.emplace_back(new_coord[0], new_coord[1], new_coord[2]);
     }
@@ -223,70 +252,70 @@ bool Triangulation::triangulation(
 
     // IMAGE 2
     //Find the centroid
-    float x1 = 0.0 ,y1 = 0.0;
-    for (vec3 p1:points_1){
+    float x1 = 0.0, y1 = 0.0;
+    for (vec3 p1:points_1) {
         x1 += p1[0];
         y1 += p1[1];
     }
-    vec3 centroid1={x1/points_1.size(),y1/points_1.size(),1};
-    mat3 T2 (1, 0, -centroid1[0],
-             0, 1, -centroid1[1],
-             0,0, 1);
+    vec3 centroid1 = {x1 / points_1.size(), y1 / points_1.size(), 1};
+    mat3 T2(1, 0, -centroid1[0],
+            0, 1, -centroid1[1],
+            0, 0, 1);
     std::cout << "Translation matrix for normalisation (image 2): " << T2 << std::endl;
 
     float dist1 = 0;
-    float  x1_mean, y1_mean;
-    for (vec3 p1:points_1){
+    float x1_mean, y1_mean;
+    for (vec3 p1:points_1) {
         x1_mean = p1[0] - centroid[0];
         y1_mean = p1[1] - centroid[1];
-        dist1 = dist1 + sqrt((x1_mean*x1_mean) + (y1_mean*y1_mean));
+        dist1 = dist1 + sqrt((x1_mean * x1_mean) + (y1_mean * y1_mean));
     }
-    float mean_dist2 = dist1/points_1.size();
+    float mean_dist2 = dist1 / points_1.size();
     float s1 = sqrt(2) / mean_dist2;
-    mat3 S2 = mat3 (s1, 0, 0,
-                    0, s1, 0,
-                    0, 0, 1);
+    mat3 S2 = mat3(s1, 0, 0,
+                   0, s1, 0,
+                   0, 0, 1);
     std::cout << "Scaling matrix for normalisation (image 2): " << S2 << std::endl;
 
     // Calculate Transformation Matrix
-    mat3 Transform2 = S2*T2;
+    mat3 Transform2 = S2 * T2;
     std::cout << "Transformation matrix for normalisation (image 2): " << Transform2 << std::endl;
 
     // Normalisation
     std::vector<vec3> norm_points_1;
-    for (vec3 p1:points_1){
-        mat3 new_coord1 = mat3(Transform2*p1);
-        norm_points_1.emplace_back(new_coord1[0],new_coord1[1],new_coord1[2]);
+    for (vec3 p1:points_1) {
+        mat3 new_coord1 = mat3(Transform2 * p1);
+        norm_points_1.emplace_back(new_coord1[0], new_coord1[1], new_coord1[2]);
     }
     std::cout << "Normalized points (image 2): \n " << norm_points_1 << std::endl;
 
     // Construct W matrix
-    Matrix <double> W(points_0.size(),9,1.0);
-    for (int i=0; i < norm_points_0.size(); i++){
+    Matrix<double> W(points_0.size(), 9, 1.0);
+    for (int i = 0; i < norm_points_0.size(); i++) {
         double u1 = norm_points_0[i][0],
                 v1 = norm_points_0[i][1],
                 u2 = norm_points_1[i][0],
                 v2 = norm_points_1[i][1];
         W.set_row({u1 * u2, v1 * u2, u2, u1 * v2, v1 * v2, v2, u1, v1, 1},
-                    i);
+                  i);
     }
     // SVD OF W;
     Matrix<double> U(W.rows(), W.rows(), 0.0),
-                    S(W.rows(), W.cols(), 0.0),
-                    V(W.cols(), W.cols(), 0.0);
-    svd_decompose(W,U,S,V);
+            S(W.rows(), W.cols(), 0.0),
+            V(W.cols(), W.cols(), 0.0);
+    svd_decompose(W, U, S, V);
     //std::cout << "Matrix W " << W << std::endl;
 
-    Matrix<double> f(3,3, V.get_column(V.cols()-1));
+    Matrix<double> f(3, 3, V.get_column(V.cols() - 1));
 
     //SVD OF f
     Matrix<double> Uf(f.rows(), f.rows(), 0.0),
-                    Sf(f.rows(), f.cols(), 0.0),
-                    Vf(f.cols(), f.cols(), 0.0);
-    svd_decompose(f,Uf,Sf,Vf);
+            Sf(f.rows(), f.cols(), 0.0),
+            Vf(f.cols(), f.cols(), 0.0);
+    svd_decompose(f, Uf, Sf, Vf);
 
     // Set last value of s to 0
-    Sf.set(Sf.rows()-1,Sf.cols()-1,0);
+    Sf.set(Sf.rows() - 1, Sf.cols() - 1, 0);
 
     // New F matrix
     Matrix<double> f_constraint(3, 3, Uf * Sf * Vf);
@@ -294,48 +323,48 @@ bool Triangulation::triangulation(
 
     // Denormalisation
     mat3 F = transpose(Transform2) * fmat3 * Transform1;
-    Matrix <double> F_matrix = to_Matrix(F);
+    Matrix<double> F_matrix = to_Matrix(F);
 
     // Scale so that last value of F is 1
-    F_matrix /= (F_matrix [F_matrix.rows()-1][F_matrix.cols()-1]);
+    F_matrix /= (F_matrix[F_matrix.rows() - 1][F_matrix.cols() - 1]);
     mat3 F_final = to_mat3(F_matrix); // Final F matrix!!
     std::cout << "Final F " << F_final << std::endl;
 
     //Compute K matrix (skewness is 0)
-    Matrix <double> k_matrix(3,3,{fx, 0.0, cx,
-                                                0.0, fy, cy,
-                                                0.0, 0.0, 1});
+    Matrix<double> k_matrix(3, 3, {fx, 0.0, cx,
+                                   0.0, fy, cy,
+                                   0.0, 0.0, 1});
     mat3 kmat3 = to_mat3(k_matrix);
     std::cout << "K matrix \n" << kmat3 << std::endl;
 
     //Compute essential matrix E (using K matrix)
     mat3 Emat3 = transpose(kmat3) * F_final * kmat3;
-    Matrix <double> E = to_Matrix(Emat3);
+    Matrix<double> E = to_Matrix(Emat3);
 
     // SVD of E
     Matrix<double> Ue(E.rows(), E.rows(), 0.0),
-                    Se(E.rows(), E.cols(), 0.0),
-                    Ve(E.cols(), E.cols(), 0.0);
-    svd_decompose(E,Ue,Se,Ve);
+            Se(E.rows(), E.cols(), 0.0),
+            Ve(E.cols(), E.cols(), 0.0);
+    svd_decompose(E, Ue, Se, Ve);
 
     // Use helper W and Z matrices to find two values of R (for camera 2)
     Matrix<double> W_matrix(3, 3, {0, -1, 0,
-                                                   1, 0, 0,
-                                                   0, 0, 1}),
-                    Z_matrix(3, 3, {0, 1, 0,
-                                                    -1, 0, 0,
-                                                    0, 0, 0});
+                                   1, 0, 0,
+                                   0, 0, 1}),
+            Z_matrix(3, 3, {0, 1, 0,
+                            -1, 0, 0,
+                            0, 0, 0});
 
     // R values
     Matrix<double> R1 = determinant(Ue * W_matrix * Ve) * (Ue * W_matrix * Ve),
-                    R2 = determinant(Ue * transpose(W_matrix) * Ve) * (Ue * transpose(W_matrix) * Ve);
+            R2 = determinant(Ue * transpose(W_matrix) * Ve) * (Ue * transpose(W_matrix) * Ve);
     std::cout << "R1: \n" << R1 << std::endl;
     std::cout << "R2: \n" << R2 << std::endl;
     assert (determinant(R1) > 0 && determinant(R2) > 0);
 
     // Find two potential T values (for camera 2)
     Matrix<double> t_helper(3, 1, {0, 0, 1});
-    Matrix <double> t1 = Ue * t_helper, t2 = -(Ue * t_helper);
+    Matrix<double> t1 = Ue * t_helper, t2 = -(Ue * t_helper);
     std::cout << "t1: \n" << t1 << std::endl;
     std::cout << "t2: \n" << t2 << std::endl;
     //t equals to the last column of Ue
@@ -347,80 +376,67 @@ bool Triangulation::triangulation(
     // CAMERA 1
     // Compute projection matrix from K, R and t
     Matrix<double> Rt(3, 4, {1, 0, 0, 0,
-                                                0, 1, 0, 0,
-                                                0, 0, 1, 0});
-    Matrix <double> M = k_matrix * Rt;
+                             0, 1, 0, 0,
+                             0, 0, 1, 0});
+    Matrix<double> M = k_matrix * Rt;
     std::cout << "M first \n" << M << std::endl;
 
     // CAMERA 2
     // 4 Projection matrices for different values of R and t
-    Matrix <double> R1_t1(3, 4, {R1[0][0], R1[0][1], R1[0][2], t1[0][0],
-                                                R1[1][0], R1[1][1], R1[1][2], t1[1][0],
-                                                R1[2][0], R1[2][1], R1[2][2], t1[2][0]}),
+    Matrix<double> R1_t1(3, 4, {R1[0][0], R1[0][1], R1[0][2], t1[0][0],
+                                        R1[1][0], R1[1][1], R1[1][2], t1[1][0],
+                                        R1[2][0], R1[2][1], R1[2][2], t1[2][0]}),
 
-                    R1_t2(3, 4, {R1[0][0], R1[0][1], R1[0][2], t2[0][0],
-                                                 R1[1][0], R1[1][1], R1[1][2], t2[1][0],
-                                                 R1[2][0], R1[2][1], R1[2][2], t2[2][0]}),
+            R1_t2(3, 4, {R1[0][0], R1[0][1], R1[0][2], t2[0][0],
+                                     R1[1][0], R1[1][1], R1[1][2], t2[1][0],
+                                     R1[2][0], R1[2][1], R1[2][2], t2[2][0]}),
 
-                    R2_t1(3, 4, {R2[0][0], R2[0][1], R2[0][2], t1[0][0],
-                                                 R2[1][0], R2[1][1], R2[1][2], t1[1][0],
-                                                 R2[2][0], R2[2][1], R2[2][2], t1[2][0]}),
+            R2_t1(3, 4, {R2[0][0], R2[0][1], R2[0][2], t1[0][0],
+                                     R2[1][0], R2[1][1], R2[1][2], t1[1][0],
+                                     R2[2][0], R2[2][1], R2[2][2], t1[2][0]}),
 
-                    R2_t2(3, 4, {R2[0][0], R2[0][1], R2[0][2], t1[0][0],
-                                                 R2[1][0], R2[1][1], R2[1][2], t2[1][0],
-                                                 R2[2][0], R2[2][1], R2[2][2], t2[2][0]});
-    Matrix <double> M1_1 = k_matrix * R1_t1,
+            R2_t2(3, 4, {R2[0][0], R2[0][1], R2[0][2], t1[0][0],
+                                     R2[1][0], R2[1][1], R2[1][2], t2[1][0],
+                                     R2[2][0], R2[2][1], R2[2][2], t2[2][0]});
+    Matrix<double> M1_1 = k_matrix * R1_t1,
                     M1_2 = k_matrix * R1_t2,
                     M2_1 = k_matrix * R2_t1,
                     M2_2 = k_matrix * R2_t2;
-    std::cout << "M with R1, t1: \n" << M1_1 << std::endl;
 
-    // A matrix for R1, t1
-    std::vector<double> A_row1 = (points_0[0][0] * M.get_row(2)) - M.get_row(0),
-                        A_row2 = (points_0[0][0] * M.get_row(2)) - M.get_row(1),
-                        A_row3 = (points_1[0][0] * M1_1.get_row(2)) - M1_1.get_row(0),
-                        A_row4 = (points_0[0][0] * M1_1.get_row(2)) - M1_1.get_row(1);
-    Matrix <double> A(4,4,A_row1.data());
-    A.set_row(A_row2, 1);
-    A.set_row(A_row3, 2);
-    A.set_row(A_row4, 3);
-    std::cout << "A " << A << std::endl;
+    // 3D COMPUTATION - LINEAR METHOD
+    int count1_1 = 0, count1_2 = 0, count2_1 = 0, count2_2 = 0;
+    for (int id = 0; id < points_0.size(); id++) {
+        // TODO - z coordinate camera 1
+        Matrix<double> A = get_A(M, Rt, points_0[id], points_1[id]);
+        // A matrices for R1, R2, t1, t2 (camera 2)
+        Matrix<double> A1_1 = get_A(M, M1_1, points_0[id], points_1[id]);
+        Matrix<double> A1_2 = get_A(M, M1_2, points_0[id], points_1[id]);
+        Matrix<double> A2_1 = get_A(M, M2_1, points_0[id], points_1[id]);
+        Matrix<double> A2_2 = get_A(M, M2_2, points_0[id], points_1[id]);
 
-    Matrix<double> Ua(A.rows(), A.rows(), 0.0),
-            Sa(A.rows(), A.cols(), 0.0),
-            Va(A.cols(), A.cols(), 0.0);
-    svd_decompose(A,Ua,Sa,Va);
+        // Counters
+        //&& z_is_positive(A)
+        if (z_is_positive(A1_1) && z_is_positive(A)) {
+            count1_1++;
+        }
+        if (z_is_positive(A1_2) && z_is_positive(A)) {
+            count1_2++;
+        }
+        if (z_is_positive(A2_1) && z_is_positive(A)) {
+            count2_1++;
+        }
+        if (z_is_positive(A2_2) && z_is_positive(A)) {
+            count2_2++;
+        }
 
-    std::cout << "UA" << Ua << std::endl;
-    std::cout << "SA" << Sa << std::endl;
-    std::cout << "VA" << Va << std::endl;
-
-    // Create A matrix
-/*    Matrix <double> A2(4,4,0.0);
-    Matrix <double> A_1 = (points_0[0][0] * M_row3) - M_row1;
-    Matrix <double> A_2 = (points_0[0][1] * M_row3) - M_row2;
-    Matrix <double> A_3 = (points_1[0][0] * M1_1_row3) - M1_1_row1;
-    Matrix <double> A_4 = (points_0[0][1] * M1_1_row3) - M1_1_row2;
-
-    A2.set_row({A_1[0][0], A_1[0][1], A_1[0][2], A_1[0][3]}, 0);
-    A2.set_row({A_2[0][0], A_2[0][1], A_2[0][2], A_2[0][3]}, 1);
-    A2.set_row({A_3[0][0], A_3[0][1], A_3[0][2], A_3[0][3]}, 2);
-    A2.set_row({A_4[0][0], A_4[0][1], A_4[0][2], A_4[0][3]}, 3);
-    */
+    }
+    std::cout << "Count R1, t1 " << count1_1 << std::endl;
+    std::cout << "Count R1, t2 " << count1_2 << std::endl;
+    std::cout << "Count R2, t1 " << count2_1 << std::endl;
+    std::cout << "Count R2, t2 " << count2_2 << std::endl;
 
 
-
-
-
-
-
-
-
-
-
-    // Compute the 3D point using the linear method (based on SVD)
-
-    // Triangulate all corresponding image points.
+    // Add final 3D points to points_3D
 
 
 
