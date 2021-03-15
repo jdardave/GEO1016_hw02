@@ -260,7 +260,6 @@ bool Triangulation::triangulation(
 
     float dist1 = 0;
     for (vec3 p1:points_1) {
-        //I think this should be centroid1 ?? but it gives worst results :(
         dist1 += sqrt(pow((centroid1[0]-p1[0]), 2)
                      + pow((centroid1[1]-p1[1]), 2));
     }
@@ -334,7 +333,7 @@ bool Triangulation::triangulation(
     //Compute essential matrix E (using K matrix)
     mat3 Emat3 = transpose(kmat3) * F_final * kmat3;
     Matrix<double> E = to_Matrix(Emat3);
-    std::cout<<E<<std::endl;
+    std::cout << "Essential matrix " << E << std::endl;
     // SVD of E
     Matrix<double> Ue(E.rows(), E.rows(), 0.0),
             Se(E.rows(), E.cols(), 0.0),
@@ -350,8 +349,8 @@ bool Triangulation::triangulation(
                             0, 0, 0});
 
     // R values
-    Matrix<double> R1 = determinant(Ue * W_matrix * Ve) * (Ue * W_matrix * Ve),
-            R2 = determinant(Ue * transpose(W_matrix) * Ve) * (Ue * transpose(W_matrix) * Ve);
+    Matrix<double> R1 = determinant(Ue * W_matrix * transpose(Ve)) * (Ue * W_matrix * transpose(Ve)),
+            R2 = determinant(Ue * transpose(W_matrix) * transpose(Ve)) * (Ue * transpose(W_matrix) * transpose(Ve));
     std::cout << "R1: \n" << R1 << std::endl;
     std::cout << "R2: \n" << R2 << std::endl;
     assert (determinant(R1) > 0 && determinant(R2) > 0);
