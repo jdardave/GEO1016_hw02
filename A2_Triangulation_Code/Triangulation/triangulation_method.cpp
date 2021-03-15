@@ -261,8 +261,8 @@ bool Triangulation::triangulation(
     float dist1 = 0;
     for (vec3 p1:points_1) {
         //I think this should be centroid1 ?? but it gives worst results :(
-        dist1 += sqrt(pow((centroid[0]-p1[0]), 2)
-                     + pow((centroid[1]-p1[1]), 2));
+        dist1 += sqrt(pow((centroid1[0]-p1[0]), 2)
+                     + pow((centroid1[1]-p1[1]), 2));
     }
     float mean_dist1 = dist1 / points_1.size();
     float s1 = sqrt(2) / mean_dist1;
@@ -312,7 +312,7 @@ bool Triangulation::triangulation(
     Sf.set(Sf.rows() - 1, Sf.cols() - 1, 0);
 
     // New F matrix
-    Matrix<double> f_constraint(3, 3, Uf * Sf * Vf);
+    Matrix<double> f_constraint(3, 3, Uf * Sf * transpose(Vf));
     mat3 fmat3 = to_mat3(f_constraint);
 
     // Denormalisation
@@ -334,7 +334,7 @@ bool Triangulation::triangulation(
     //Compute essential matrix E (using K matrix)
     mat3 Emat3 = transpose(kmat3) * F_final * kmat3;
     Matrix<double> E = to_Matrix(Emat3);
-
+    std::cout<<E<<std::endl;
     // SVD of E
     Matrix<double> Ue(E.rows(), E.rows(), 0.0),
             Se(E.rows(), E.cols(), 0.0),
@@ -357,8 +357,9 @@ bool Triangulation::triangulation(
     assert (determinant(R1) > 0 && determinant(R2) > 0);
 
     // Find two potential T values (for camera 2)
-    Matrix<double> t_helper(3, 1, {0, 0, 1});
-    Matrix<double> t1 = Ue * t_helper, t2 = -(Ue * t_helper);
+//    Matrix<double> t_helper(3, 1, {0, 0, 1});
+
+    std::vector<double> t1 = Ve.get_column(Ve.cols()-1), t2 = -Ve.get_column(Ve.cols()-1);
     std::cout << "t1: \n" << t1 << std::endl;
     std::cout << "t2: \n" << t2 << std::endl;
     //t equals to the last column of Ue
@@ -377,21 +378,21 @@ bool Triangulation::triangulation(
 
     // CAMERA 2
     // 4 Projection matrices for different values of R and t
-    Matrix<double> R1_t1(3, 4, {R1[0][0], R1[0][1], R1[0][2], t1[0][0],
-                                        R1[1][0], R1[1][1], R1[1][2], t1[1][0],
-                                        R1[2][0], R1[2][1], R1[2][2], t1[2][0]}),
+    Matrix<double> R1_t1(3, 4, {R1[0][0], R1[0][1], R1[0][2], t1[0],
+                                        R1[1][0], R1[1][1], R1[1][2], t1[1],
+                                        R1[2][0], R1[2][1], R1[2][2], t1[2]}),
 
-            R1_t2(3, 4, {R1[0][0], R1[0][1], R1[0][2], t2[0][0],
-                                     R1[1][0], R1[1][1], R1[1][2], t2[1][0],
-                                     R1[2][0], R1[2][1], R1[2][2], t2[2][0]}),
+            R1_t2(3, 4, {R1[0][0], R1[0][1], R1[0][2], t2[0],
+                                     R1[1][0], R1[1][1], R1[1][2], t2[1],
+                                     R1[2][0], R1[2][1], R1[2][2], t2[2]}),
 
-            R2_t1(3, 4, {R2[0][0], R2[0][1], R2[0][2], t1[0][0],
-                                     R2[1][0], R2[1][1], R2[1][2], t1[1][0],
-                                     R2[2][0], R2[2][1], R2[2][2], t1[2][0]}),
+            R2_t1(3, 4, {R2[0][0], R2[0][1], R2[0][2], t1[0],
+                                     R2[1][0], R2[1][1], R2[1][2], t1[1],
+                                     R2[2][0], R2[2][1], R2[2][2], t1[2]}),
 
-            R2_t2(3, 4, {R2[0][0], R2[0][1], R2[0][2], t2[0][0],
-                                     R2[1][0], R2[1][1], R2[1][2], t2[1][0],
-                                     R2[2][0], R2[2][1], R2[2][2], t2[2][0]});
+            R2_t2(3, 4, {R2[0][0], R2[0][1], R2[0][2], t2[0],
+                                     R2[1][0], R2[1][1], R2[1][2], t2[1],
+                                     R2[2][0], R2[2][1], R2[2][2], t2[2]});
     Matrix<double> M1_1 = k_matrix * R1_t1,
                     M1_2 = k_matrix * R1_t2,
                     M2_1 = k_matrix * R2_t1,
@@ -446,7 +447,7 @@ bool Triangulation::triangulation(
 
     // Final R and t matrices
     R = to_mat3(R2);
-    t = {float(*t1[0]), float(*t1[1]), float(*t1[2])};
+    t = {float(t1[0]), float(t1[1]), float(t1[2])};
 
     // TODO: Don't forget to
     //          - write your recovered 3D points into 'points_3d' (the viewer can visualize the 3D points for you);
