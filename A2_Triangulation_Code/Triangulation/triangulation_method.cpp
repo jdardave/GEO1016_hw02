@@ -358,7 +358,7 @@ bool Triangulation::triangulation(
     // Find two potential T values (for camera 2)
 //    Matrix<double> t_helper(3, 1, {0, 0, 1});
 
-    std::vector<double> t1 = Ve.get_column(Ve.cols()-1), t2 = -Ve.get_column(Ve.cols()-1);
+    std::vector<double> t1 = Ue.get_column(Ve.cols()-1), t2 = -Ue.get_column(Ve.cols()-1);
     std::cout << "t1: \n" << t1 << std::endl;
     std::cout << "t2: \n" << t2 << std::endl;
     //t equals to the last column of Ue
