@@ -26,6 +26,8 @@
 #include "matrix_algo.h"
 #include <easy3d/optimizer/optimizer_lm.h>
 # include <cmath>
+# include <unordered_map>
+# include <map>
 
 
 using namespace easy3d;
@@ -373,7 +375,7 @@ bool Triangulation::triangulation(
                              0, 1, 0, 0,
                              0, 0, 1, 0});
     Matrix<double> M = k_matrix * Rt;
-    std::cout << "M first \n" << M << std::endl;
+    std::cout << "M first camera \n" << M << std::endl;
 
     // CAMERA 2
     // 4 Projection matrices for different values of R and t
@@ -417,26 +419,30 @@ bool Triangulation::triangulation(
 
         // Counters
         if (hom_coordinates(A1_1)[2] > 0 && coordRt1_1[0][2] > 0) {
-            count1_1++;
+            count1_1 ++;
         }
         if (hom_coordinates(A1_2)[2] > 0 && coordRt1_2[0][2] > 0) {
-            count1_2++;
+            count1_2 ++;
         }
         if (hom_coordinates(A2_1)[2] > 0 && coordRt2_1[0][2] > 0) {
-            count2_1++;
+            count2_1 ++;
         }
         if (hom_coordinates(A2_2)[2] > 0 && coordRt2_2[0][2] > 0) {
-            count2_2++;
+            count2_2 ++;
         }
     }
-    std::cout << "Count R1, t1 " << count1_1 << std::endl;
-    std::cout << "Count R1, t2 " << count1_2 << std::endl;
-    std::cout << "Count R2, t1 " << count2_1 << std::endl;
-    std::cout << "Count R2, t2 " << count2_2 << std::endl;
+    std::map <int, Matrix<double>> Rt_bestFit = {{count1_1, M1_1}, {count1_2, M1_2},
+                                                 {count2_1, M2_1}, {count2_2, M2_2}};
+    int biggest_value = 0;
+    for (const auto& [key, value] : Rt_bestFit) {
+        if (key > biggest_value) {
+            biggest_value = key;
+        }
+    }
+    std::cout << "Final M matrix \n" << Rt_bestFit[biggest_value] << std::endl;
 
-    // Add final 3D points to points_3D, using R2 and t1, that is M2_1
     for (int id = 0; id < points_0.size(); id++) {
-        Matrix<double> A_final = get_A(M, M2_1, points_0[id], points_1[id]);
+        Matrix<double> A_final = get_A(M, Rt_bestFit[biggest_value], points_0[id], points_1[id]);
         vec3 coord_3d = {float(hom_coordinates(A_final)[0]),
                          float(hom_coordinates(A_final)[1]),
                          float(hom_coordinates(A_final)[2])};
