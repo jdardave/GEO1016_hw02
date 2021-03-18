@@ -434,9 +434,9 @@ bool Triangulation::triangulation(
     std::map <int, Matrix<double>> Rt_bestFit = {{count1_1, M1_1}, {count1_2, M1_2},
                                                  {count2_1, M2_1}, {count2_2, M2_2}};
     int biggest_value = 0;
-    for (const auto& [key, value] : Rt_bestFit) {
-        if (key > biggest_value) {
-            biggest_value = key;
+    for (const auto& element : Rt_bestFit) {
+        if (element.first > biggest_value) {
+            biggest_value = element.first;
         }
     }
     std::cout << "Final M matrix \n" << Rt_bestFit[biggest_value] << std::endl;
@@ -453,6 +453,7 @@ bool Triangulation::triangulation(
     // Final R and t matrices
     R = to_mat3(R2);
     t = {float(t1[0]), float(t1[1]), float(t1[2])};
+
 
     // TODO: Don't forget to
     //          - write your recovered 3D points into 'points_3d' (the viewer can visualize the 3D points for you);
