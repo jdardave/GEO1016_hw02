@@ -233,11 +233,11 @@ bool Triangulation::triangulation(
     mat3 S0 = mat3(s0, 0, 0,
                    0, s0, 0,
                    0, 0, 1);
-    std::cout << "Scaling matrix for normalisation (image 1): " << S0 << std::endl;
+    std::cout << "Scaling matrix for normalisation (image 1): \n" << S0 << std::endl;
 
     // Calculate Transformation Matrix
     mat3 Transform0 = S0 * T0;
-    std::cout << "Transformation matrix for normalisation (image 1): " << Transform0 << std::endl;
+    std::cout << "Transformation matrix for normalisation (image 1): \n" << Transform0 << std::endl;
 
     // Normalisation
     std::vector<vec3> norm_points_0;
@@ -258,7 +258,7 @@ bool Triangulation::triangulation(
     mat3 T1(1, 0, -centroid1[0],
             0, 1, -centroid1[1],
             0, 0, 1);
-    std::cout << "Translation matrix for normalisation (image 2): " << T1 << std::endl;
+    std::cout << "Translation matrix for normalisation (image 2): \n" << T1 << std::endl;
 
     float dist1 = 0;
     for (vec3 p1:points_1) {
@@ -270,11 +270,11 @@ bool Triangulation::triangulation(
     mat3 S1 = mat3(s1, 0, 0,
                    0, s1, 0,
                    0, 0, 1);
-    std::cout << "Scaling matrix for normalisation (image 2): " << S1 << std::endl;
+    std::cout << "Scaling matrix for normalisation (image 2): \n" << S1 << std::endl;
 
     // Calculate Transformation Matrix
     mat3 Transform1 = S1 * T1;
-    std::cout << "Transformation matrix for normalisation (image 2): " << Transform1 << std::endl;
+    std::cout << "Transformation matrix for normalisation (image 2): \n" << Transform1 << std::endl;
 
     // Normalisation
     std::vector<vec3> norm_points_1;
@@ -310,6 +310,7 @@ bool Triangulation::triangulation(
     svd_decompose(f, Uf, Sf, Vf);
 
     // Set last value of s to 0
+    std::cout << "Scaling matrix from F singular value decomposition \n" << Sf << std::endl;
     Sf.set(Sf.rows() - 1, Sf.cols() - 1, 0);
 
     // New F matrix
@@ -323,7 +324,7 @@ bool Triangulation::triangulation(
     // Scale so that last value of F is 1
     F_matrix /= (F_matrix[F_matrix.rows() - 1][F_matrix.cols() - 1]);
     mat3 F_final = to_mat3(F_matrix); // Final F matrix!!
-    std::cout << "Final F " << F_final << std::endl;
+    std::cout << "Final F \n" << F_final << std::endl;
 
     //Compute K matrix (skewness is 0)
     Matrix<double> k_matrix(3, 3, {fx, 0.0, cx,
@@ -335,7 +336,11 @@ bool Triangulation::triangulation(
     //Compute essential matrix E (using K matrix)
     mat3 Emat3 = transpose(kmat3) * F_final * kmat3;
     Matrix<double> E = to_Matrix(Emat3);
-    std::cout << "Essential matrix " << E << std::endl;
+    std::cout << "Essential matrix \n" << E << std::endl;
+
+    // Check F from E:
+    std::cout << "transpose(inverse(K)) * E * inverse(K) \n" << transpose(inverse(kmat3)) * Emat3 * inverse(kmat3) << std::endl;
+
     // SVD of E
     Matrix<double> Ue(E.rows(), E.rows(), 0.0),
             Se(E.rows(), E.cols(), 0.0),
@@ -356,6 +361,9 @@ bool Triangulation::triangulation(
     std::cout << "R1: \n" << R1 << std::endl;
     std::cout << "R2: \n" << R2 << std::endl;
     assert (determinant(R1) > 0 && determinant(R2) > 0);
+    std::cout << "Determinant of R1 \n" << determinant(R1) << std::endl;
+    std::cout << "Determinant of R2 \n" << determinant(R2) << std::endl;
+
 
     // Find two potential T values (for camera 2)
 //    Matrix<double> t_helper(3, 1, {0, 0, 1});
@@ -398,6 +406,10 @@ bool Triangulation::triangulation(
                     M1_2 = k_matrix * R1_t2,
                     M2_1 = k_matrix * R2_t1,
                     M2_2 = k_matrix * R2_t2;
+
+    std::cout << "Determinant of R \n" << determinant(R2) << std::endl;
+
+    std::cout << "M second camera \n" << M1_1 << M1_2 << M2_1 << M2_2 << std::endl;
 
     // 3D COMPUTATION - LINEAR METHOD
     int count1_1 = 0, count1_2 = 0, count2_1 = 0, count2_2 = 0;
@@ -453,6 +465,68 @@ bool Triangulation::triangulation(
     // Final R and t matrices
     R = to_mat3(R2);
     t = {float(t1[0]), float(t1[1]), float(t1[2])};
+
+    // Final assessment
+
+        std::vector<vec3> points_image1;
+        std::ofstream output_file("../points_image1_difference.txt");
+        if (output_file.is_open()){
+            for (int i=0; i < points_3d.size(); i++) {
+                float last_value = (kmat3 * points_3d[i])[2];
+                float x = (kmat3 * points_3d[i] / last_value)[0] - points_0[i][0],
+                y = (kmat3 * points_3d[i]/ last_value)[1] - points_0[i][1],
+                z = (kmat3 * points_3d[i]/ last_value)[2]  - points_0[i][2];
+                output_file << x << " " << y << " " << z << "\n";
+            }
+            output_file.close();
+        }
+
+    std::ofstream output_file2("../points_image1.txt");
+    if (output_file2.is_open()){
+        for (int i=0; i < points_3d.size(); i++) {
+            float last_value = (kmat3 * points_3d[i])[2];
+            float x = (kmat3 * points_3d[i] / last_value)[0],
+                    y = (kmat3 * points_3d[i]/ last_value)[1],
+                    z = (kmat3 * points_3d[i]/ last_value)[2];
+            output_file2 << x << " " << y << " " << z << "\n";
+            points_image1.push_back({x,y,z});
+        }
+        output_file2.close();
+    }
+
+    std::ofstream output_file3("../points_image2.txt");
+    if (output_file3.is_open()){
+        for (int i=0; i < points_image1.size(); i++) {
+            Matrix <double> p(1,3, {
+                points_image1[i][0], points_image1[i][1], points_image1[i][2]
+            });
+            double last_value = (p * R2_t1 )[0][2];
+            double x = (p * R2_t1 / last_value)[0][0],
+            y = (p * R2_t1 / last_value)[0][1],
+            z = (p * R2_t1 / last_value)[0][2];
+            output_file3 << x << " " << y << " " << z << "\n";
+        }
+        output_file3.close();
+    }
+
+    std::ofstream output_file4("../points_image2_difference.txt");
+    if (output_file4.is_open()){
+        for (int i=0; i < points_image1.size(); i++) {
+            Matrix <double> p(1,3, {
+                    points_image1[i][0], points_image1[i][1], points_image1[i][2]
+            });
+            double last_value = (p * R2_t1 )[0][2];
+            double x = (p * R2_t1 / last_value)[0][0] - points_1[i][0],
+                    y = (p * R2_t1 / last_value)[0][1] - points_1[i][1],
+                    z = (p * R2_t1 / last_value)[0][2] - points_1[i][2];
+            output_file4 << x << " " << y << " " << z << "\n";
+        }
+        output_file4.close();
+    }
+
+    for (vec3 p:points_1) {
+        std::cout << p[0] << " " << p[1] << " " << p[2] << std::endl;
+    }
 
 
     // TODO: Don't forget to
