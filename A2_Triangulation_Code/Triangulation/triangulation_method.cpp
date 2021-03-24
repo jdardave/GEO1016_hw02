@@ -121,80 +121,6 @@ bool Triangulation::triangulation(
                  "\t    - make sure your code compiles and can reproduce your results without any modification.\n\n"
               << std::flush;
 
-    /// Easy3D provides fixed-size matrix types, e.g., mat2 (2x2), mat3 (3x3), mat4 (4x4), mat34 (3x4).
-    /// To use these matrices, their sizes should be known to you at the compile-time (i.e., when compiling your code).
-    /// Once defined, their sizes can NOT be changed.
-    /// In 'Triangulation/matrix.h', another templated 'Matrix' type is also provided. This type can have arbitrary
-    /// dimensions and their sizes can be specified at run-time (i.e., when executing your program).
-    /// Below are a few examples showing some of these data structures and related APIs.
-
-    /// ----------- fixed-size matrices
-
-    /// define a 3 by 4 matrix M (you can also define 3 by 4 matrix similarly)
-//    mat34 M(1.0f);  /// entries on the diagonal are initialized to be 1 and others to be 0.
-//
-//    /// set the first row of M
-//    M.set_row(0, vec4(1,1,1,1));    /// vec4 is a 4D vector.
-//
-//    /// set the second column of M
-//    M.set_col(1, vec4(2,2,2,2));
-//
-//    /// get the 3 rows of M
-//    vec4 M1 = M.row(0);
-//    vec4 M2 = M.row(1);
-//    vec4 M3 = M.row(2);
-//
-//    /// ----------- fixed-size vectors
-//
-//    /// how to quickly initialize a std::vector
-//    std::vector<double> rows = {0, 1, 2, 3,
-//                                4, 5, 6, 7,
-//                                8, 9, 10, 11};
-//    /// get the '2'-th row of M
-//    const vec4 b = M.row(2);    // it assigns the requested row to a new vector b
-//
-//    /// get the '1'-th column of M
-//    const vec3 c = M.col(1);    // it assigns the requested column to a new vector c
-//
-//    /// modify the element value at row 2 and column 1 (Note the 0-based indices)
-//    M(2, 1) = b.x;
-//
-//    /// apply transformation M on a 3D point p (p is a 3D vector)
-//    vec3 p(222, 444, 333);
-//    vec3 proj = M * vec4(p, 1.0f);  // use the homogenous coordinates. result is a 3D vector
-//
-//    /// the length of a vector
-//    float len = p.length();
-//    /// the squared length of a vector
-//    float sqr_len = p.length2();
-//
-//    /// the dot product of two vectors
-//    float dot_prod = dot(p, proj);
-//
-//    /// the cross product of two vectors
-//    vec3 cross_prod = cross(p, proj);
-//
-//    /// normalize this vector
-//    cross_prod.normalize();
-//
-//    /// a 3 by 3 matrix (all entries are intentionally NOT initialized for efficiency reasons)
-//    mat3 F;
-//    /// ... here you compute or initialize F.
-//    /// compute the inverse of K
-//    mat3 invF = inverse(F);
-//
-//    /// ----------- dynamic-size matrices
-//
-//    /// define a non-fixed size matrix
-//    Matrix<double> W(2, 3, 0.0); // all entries initialized to 0.0.
-//
-//    /// set its first row by a 3D vector (1.1, 2.2, 3.3)
-//    W.set_row({ 1.1, 2.2, 3.3 }, 0);   // here "{ 1.1, 2.2, 3.3 }" is of type 'std::vector<double>'
-//
-//    /// get the last column of a matrix
-//    std::vector<double> last_column = W.get_column(W.cols() - 1);
-
-    // TODO: delete all above demo code in the final submission
 
     //--------------------------------------------------------------------------------------------------------------
     // implementation starts ...
@@ -521,6 +447,10 @@ bool Triangulation::triangulation(
         std::cout << p[0] << " " << p[1] << " " << p[2] << std::endl;
     }
 
+    if (points_0.size() != points_3d.size() || points_1.size() != points_3d.size()) {
+        std::cout << "Invalid!!" << std::endl;
+        return false;
+    }
 
     // TODO: Don't forget to
     //          - write your recovered 3D points into 'points_3d' (the viewer can visualize the 3D points for you);
@@ -533,4 +463,5 @@ bool Triangulation::triangulation(
     //          - input not valid (e.g., not enough points, point numbers don't match);
     //          - encountered failure in any step.
     return points_3d.size() > 0;
+
 }
