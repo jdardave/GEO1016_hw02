@@ -493,17 +493,13 @@ bool Triangulation::triangulation(
         }
         output_file2.close();
     }
-
     std::ofstream output_file3("../points_image2.txt");
     if (output_file3.is_open()){
-        for (int i=0; i < points_image1.size(); i++) {
-            Matrix <double> p(1,3, {
-                points_image1[i][0], points_image1[i][1], points_image1[i][2]
-            });
-            double last_value = (p * R2_t1 )[0][2];
-            double x = (p * R2_t1 / last_value)[0][0],
-            y = (p * R2_t1 / last_value)[0][1],
-            z = (p * R2_t1 / last_value)[0][2];
+        for (int i=0; i < points_3d.size(); i++) {
+            float last_value = (kmat3 * (R * points_3d[i]+t))[2];
+            float x = (kmat3 * (R * points_3d[i]+t))[0]/last_value,
+            y = (kmat3 * (R * points_3d[i]+t))[1]/last_value,
+            z = (kmat3 * (R * points_3d[i]+t))[2]/last_value;
             output_file3 << x << " " << y << " " << z << "\n";
         }
         output_file3.close();
@@ -511,14 +507,11 @@ bool Triangulation::triangulation(
 
     std::ofstream output_file4("../points_image2_difference.txt");
     if (output_file4.is_open()){
-        for (int i=0; i < points_image1.size(); i++) {
-            Matrix <double> p(1,3, {
-                    points_image1[i][0], points_image1[i][1], points_image1[i][2]
-            });
-            double last_value = (p * R2_t1 )[0][2];
-            double x = (p * R2_t1 / last_value)[0][0] - points_1[i][0],
-                    y = (p * R2_t1 / last_value)[0][1] - points_1[i][1],
-                    z = (p * R2_t1 / last_value)[0][2] - points_1[i][2];
+        for (int i=0; i < points_3d.size(); i++) {
+            float last_value = (kmat3 * (R * points_3d[i]+t))[2];
+            float x = (kmat3 * (R * points_3d[i]+t))[0]/last_value- points_1[i][0],
+                    y = (kmat3 * (R * points_3d[i]+t))[1]/last_value- points_1[i][1],
+                    z = (kmat3 * (R * points_3d[i]+t))[2]/last_value- points_1[i][2];
             output_file4 << x << " " << y << " " << z << "\n";
         }
         output_file4.close();
