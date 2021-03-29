@@ -276,25 +276,29 @@ bool Triangulation::triangulation(
                         A2_1 = get_A(M, M2_1, points_0[id], points_1[id]),
                         A2_2 = get_A(M, M2_2, points_0[id], points_1[id]);
         // Coordinates camera 2: apply Rt
-        Matrix<double> coordRt1_1(4,1, hom_coordinates(A1_1));
+        std::vector<double> A1_1_hom = hom_coordinates(A1_1);
+        std::vector<double> A1_2_hom = hom_coordinates(A1_2);
+        std::vector<double> A2_1_hom = hom_coordinates(A2_1);
+        std::vector<double> A2_2_hom = hom_coordinates(A2_2);
+        Matrix<double> coordRt1_1(4,1, A1_1_hom);
         coordRt1_1 = R1_t1 * coordRt1_1;
-        Matrix<double> coordRt1_2(4,1, hom_coordinates(A1_2));
+        Matrix<double> coordRt1_2(4,1, A1_2_hom);
         coordRt1_2 = R1_t2 * coordRt1_2;
-        Matrix<double> coordRt2_1(4,1, hom_coordinates(A2_1));
+        Matrix<double> coordRt2_1(4,1, A2_1_hom);
         coordRt2_1 = R2_t1 * coordRt2_1;
-        Matrix<double> coordRt2_2(4,1, hom_coordinates(A2_2));
+        Matrix<double> coordRt2_2(4,1, A2_2_hom);
         coordRt2_2 = R2_t2 * coordRt2_2;
         // Counters
-        if (hom_coordinates(A1_1)[2] > 0 && coordRt1_1[2][0] > 0) {
+        if (A1_1_hom[2] > 0 && coordRt1_1[2][0] > 0) {
             count1_1 ++;
         }
-        if (hom_coordinates(A1_2)[2] > 0 && coordRt1_2[2][0] > 0) {
+        if (A1_2_hom[2] > 0 && coordRt1_2[2][0] > 0) {
             count1_2 ++;
         }
-        if (hom_coordinates(A2_1)[2] > 0 && coordRt2_1[2][0] > 0) {
+        if (A2_1_hom[2] > 0 && coordRt2_1[2][0] > 0) {
             count2_1 ++;
         }
-        if (hom_coordinates(A2_2)[2] > 0 && coordRt2_2[2][0] > 0) {
+        if (A2_2_hom[2] > 0 && coordRt2_2[2][0] > 0) {
             count2_2 ++;
         }
     }
@@ -318,9 +322,10 @@ bool Triangulation::triangulation(
 
     for (int id = 0; id < points_0.size(); id++) {
         Matrix<double> A_final = get_A(M, correct_M, points_0[id], points_1[id]);
-        vec3 coord_3d = {float(hom_coordinates(A_final)[0]),
-                         float(hom_coordinates(A_final)[1]),
-                         float(hom_coordinates(A_final)[2])};
+        std::vector<double> A_hom = hom_coordinates(A_final);
+        vec3 coord_3d = {float(A_hom[0]),
+                         float(A_hom[1]),
+                         float(A_hom[2])};
         points_3d.emplace_back(coord_3d);
     }
     assert(points_3d.size() == points_0.size() && points_3d.size() == points_1.size());
